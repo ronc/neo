@@ -4978,6 +4978,52 @@ document.addEventListener('keydown', (e) => {
   smartKeys(e, el);
 }, true);
 
+// A dead key (U.S. International's ' and ", the Mac's ⌥E) types through the
+// system's composer, so its keys reach the page as keyCode 229 and smartKeys
+// never sees them: quotes stayed straight and an accented letter starting a
+// sentence stayed small. When the composer hands over a straight quote (alone
+// or with the letter after it, "'t"), the quote is typed again through the
+// same rules. One lowercase letter is offered to them from just before it,
+// and is swapped only if they capitalize it (⌘Z then undoes that as usual).
+// Longer results (an input method's words) are left as they came. Pocket
+// has its own path (beforeinput).
+document.addEventListener('compositionend', (e) => {
+  const el = e.target;
+  const data = e.data || '';
+  if (IS_POCKET || vimNav || !el || !el.isContentEditable) return;
+  const quote = /^['"].?$/u.test(data);
+  const letter = [...data].length === 1 && data !== data.toLocaleUpperCase();
+  if (!quote && !letter) return;
+  // done here, not on a timer: a key typed quickly after would run first
+  const s = window.getSelection();
+  if (!s.rangeCount || !s.isCollapsed || document.activeElement !== el) return;
+  const { startContainer: node, startOffset: at } = s.getRangeAt(0);
+  const from = at - data.length;
+  if (node.nodeType !== Node.TEXT_NODE || from < 0 || node.data.slice(from, at) !== data) return;
+  const host = el.closest('.chapter-body') || el;
+  let stopped = false;
+  const key = {
+    key: quote ? data[0] : data, code: '', keyCode: 0, isComposing: false, metaKey: false, ctrlKey: false, altKey: false, shiftKey: false,
+    get defaultPrevented() { return stopped; },
+    preventDefault() { stopped = true; },
+    stopPropagation() {}
+  };
+  if (quote) {
+    s.setBaseAndExtent(node, from, node, from + 1);
+    document.execCommand('delete');
+    smartKeys(key, host);
+    if (!stopped) document.execCommand('insertText', false, data[0]);
+    for (let i = 1; i < data.length; i++) s.modify('move', 'forward', 'character');
+    return;
+  }
+  s.collapse(node, from);
+  smartKeys(key, host);
+  // the rules may have changed the text before it (a dialogue dash), so
+  // the caret moves from where it is now, not back to the old offset
+  if (stopped) document.execCommand('forwardDelete');
+  else s.modify('move', 'forward', 'character');
+}, true);
+
 // Title page: Enter drops you into Chapter One.
 $('#tp-title').addEventListener('keydown', titleEnter);
 $('#tp-subtitle').addEventListener('keydown', titleEnter);

@@ -119,6 +119,37 @@ test('the arrows and Enter pick too', async () => {
   assert.equal(await typed(2), ' ân');
 });
 
+test('a screen reader hears the forms, the arrows\' choice and the pick', async () => {
+  await caretEnd(8);
+  await type(' ');
+  await hold('n');
+  const said = () => js(`document.getElementById('accent-say').textContent`);
+  const shape = await js(`(() => {
+    const s = document.querySelector('.accent-strip');
+    return {
+      role: s.getAttribute('role'), label: s.getAttribute('aria-label'),
+      options: [...s.children].map((b) => [b.getAttribute('role'), b.getAttribute('aria-label'), b.getAttribute('aria-keyshortcuts'), b.getAttribute('aria-selected')].join(' ')),
+      numbersHidden: [...s.querySelectorAll('small')].every((n) => n.getAttribute('aria-hidden') === 'true')
+    };
+  })()`);
+  assert.equal(shape.role, 'listbox');
+  assert.equal(shape.label, 'Accents for n');
+  assert.deepEqual(shape.options, ['option ñ 1 false', 'option ń 2 false', 'option ň 3 false']);
+  assert.ok(shape.numbersHidden, 'the numbers are not read twice');
+  await tick(80);
+  assert.equal(await said(), 'Accents for n: ñ 1 ń 2 ň 3. A number picks one; Esc keeps the letter.');
+  assert.equal(await js(`document.activeElement.classList.contains('chapter-body')`), true, 'the caret stays in the page');
+  await key('Right');
+  await key('Right');
+  assert.equal(await js(`[...document.querySelectorAll('.accent-strip [aria-selected=true]')].map((b) => b.getAttribute('aria-label')).join()`), 'ń');
+  await tick(80);
+  assert.equal(await said(), 'ń 2');
+  await key('Enter');
+  await tick(80);
+  assert.equal(await said(), 'ń');
+  assert.equal(await typed(8), ' ń');
+});
+
 test('Esc keeps the letter; another key closes the strip and types', async () => {
   await caretEnd(3);
   await type(' ');

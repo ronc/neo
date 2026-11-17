@@ -1462,7 +1462,14 @@ body.focus-mode .walk-note { opacity: 0.6; }
   font: 10px/1.2 -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; color: var(--muted);
 }
 .accent-strip button:hover, .accent-strip button.on { background: #353535; }
+/* the arrows' choice is shown by more than a shade: an outline too */
+.accent-strip button.on { box-shadow: inset 0 0 0 1px var(--accent); }
 .accent-strip button.on small { color: var(--accent); }
+/* what the strip says to a screen reader, out of sight */
+#accent-say {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
 
 /* --- Right side pane --- */
 #side-hotzone { position: fixed; right: 0; top: 0; bottom: 40px; z-index: 60; }
@@ -1778,6 +1785,8 @@ body.bright .pop-menu button:disabled { color: #8a8a8a; }
   .nav-item.current { border-left-color: Highlight; }
   .sheet, #aux-paper { border: 1px solid CanvasText; }
   .ph-mark { border: 1px solid Highlight; }
+  .accent-strip { border-color: CanvasText; }
+  .accent-strip button.on { outline: 2px solid Highlight; outline-offset: -2px; }
 }
 
 /* Interface size (View menu): the shelf, the panes, the bottom bar and the

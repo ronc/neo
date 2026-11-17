@@ -1293,12 +1293,22 @@ function accentStripOpen() {
   if (!list.length) return;
   const strip = document.createElement('div');
   strip.className = 'accent-strip';
+  // a list of choices to a screen reader; the caret stays in the page, so
+  // what it would say on focus is spoken through accentSay instead
+  strip.setAttribute('role', 'listbox');
+  strip.setAttribute('aria-orientation', 'horizontal');
+  strip.setAttribute('aria-label', t('Accents for {letter}', { letter: ch }));
   list.forEach((c, i) => {
     const b = document.createElement('button');
     b.type = 'button';
     b.tabIndex = -1;
+    b.setAttribute('role', 'option');
+    b.setAttribute('aria-selected', 'false');
+    b.setAttribute('aria-label', c);
+    b.setAttribute('aria-keyshortcuts', String(i + 1));
     const n = document.createElement('small');
     n.textContent = String(i + 1);
+    n.setAttribute('aria-hidden', 'true');
     b.append(c, n);
     // mousedown, so the page keeps the caret
     b.addEventListener('mousedown', (ev) => { ev.preventDefault(); accentPick(i); });
@@ -1307,6 +1317,25 @@ function accentStripOpen() {
   document.body.append(strip);
   accentStrip = { el: strip, editor: el, node, offset, ch, list, pick: -1 };
   accentStripPlace();
+  const forms = list.map((c, i) => c + ' ' + (i + 1));
+  let said = forms.join(', ');
+  try { said = new Intl.ListFormat(NeoI18n.getLocale(), { style: 'narrow', type: 'unit' }).format(forms); } catch (_) { /* older engine */ }
+  accentSay(t('Accents for {letter}', { letter: ch }) + ': ' + said + '. ' + t('A number picks one; Esc keeps the letter.'));
+}
+// Spoken to a screen reader without moving the caret: a live region kept in
+// the page (one made with its words is often not read), hidden from sight.
+function accentSay(text) {
+  let say = document.getElementById('accent-say');
+  if (!say) {
+    say = document.createElement('div');
+    say.id = 'accent-say';
+    say.setAttribute('role', 'status');
+    say.setAttribute('aria-live', 'polite');
+    document.body.append(say);
+  }
+  say.textContent = '';
+  clearTimeout(accentSay._t);
+  accentSay._t = setTimeout(() => { say.textContent = text; }, 30);
 }
 // above the letter, centered on it; below when there is no room above
 function accentStripPlace() {
@@ -1339,7 +1368,11 @@ function accentStripKey(e) {
   if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
     const n = st.list.length;
     st.pick = e.key === 'ArrowRight' ? (st.pick + 1) % n : (st.pick <= 0 ? n - 1 : st.pick - 1);
-    [...st.el.children].forEach((b, i) => b.classList.toggle('on', i === st.pick));
+    [...st.el.children].forEach((b, i) => {
+      b.classList.toggle('on', i === st.pick);
+      b.setAttribute('aria-selected', i === st.pick ? 'true' : 'false');
+    });
+    accentSay(st.list[st.pick] + ' ' + (st.pick + 1));
     return take();
   }
   if (e.key === 'Enter' && st.pick >= 0) {
@@ -1362,4 +1395,5 @@ function accentPick(i) {
   if (document.activeElement !== st.editor) st.editor.focus({ preventScroll: true });
   window.getSelection().setBaseAndExtent(st.node, st.offset - 1, st.node, st.offset);
   document.execCommand('insertText', false, c);
+  accentSay(c); // a letter swapped in place is not read by itself
 }

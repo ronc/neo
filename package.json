@@ -18,6 +18,7 @@
     "test:dropcap": "electron scripts/dropcap.e2e.js",
     "test:twodevices": "electron scripts/twodevices.e2e.js",
     "test:emphasis": "electron scripts/emphasis.e2e.js",
+    "test:dead-keys": "electron scripts/dead-keys.e2e.js",
     "test:manuscript": "electron scripts/manuscript.e2e.js",
     "test:pages": "electron scripts/pages.e2e.js",
     "test:options": "electron scripts/options.e2e.js",

@@ -327,6 +327,7 @@ function bookShortcutSections() {
       [KPH, tk('Insert a placeholder note')],
       ...(on('footnotes') ? [[KFN, tk('Add a footnote'), tk('Type the note, then Enter to go back to writing. Click its number to change it.')]] : []),
       [KDA, tk('Move selected text to Darlings')],
+      ...(pressHoldOn && accentStripHere ? [[tk('Hold a letter'), tk('Its accents: é, ñ, ü…'), tk('A number picks one; Esc keeps the letter.')]] : []),
       ...(on('readAloud') ? [[K('⌘⇧U', IS_LINUX ? 'Ctrl+Shift+K' : 'Ctrl+Shift+U'), tk('Read aloud from the cursor'), tk('Again, Esc or any key stops it. Uses your computer’s own voice.')]] : [])
     ] },
     { title: tk('Formatting'), rows: [

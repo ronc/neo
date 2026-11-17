@@ -670,11 +670,15 @@ function replaceBefore(n, text) {
 // abbreviation; the same rules as capitalSlips) and, in English, "i" on its
 // own. ⌘Z (Ctrl+Z) right after keeps the lowercase. Poetry is left alone.
 let capJustSet = null; // the capital just set, for ⌘Z
-// macOS press-and-hold (View → Press and hold for accents): the held letter
-// must reach the system untouched, so a sentence's first letter is typed as it
-// is and capitalised at the next key, whether it stayed or the picker made é.
+// Press and hold for accents (Options). On a Mac it is the system's own
+// picker, and the held letter must reach the system untouched, so a sentence's
+// first letter is typed as it is and capitalised at the next key, whether it
+// stayed or the picker made é. Windows and Linux have no picker: there it is
+// NEO's strip (ACCENTS below), which takes the letter as it landed.
 let pressHoldOn = false;
-try { pressHoldOn = !!(window.neo && window.neo.pressHold && window.neo.pressHold()); } catch (_) { /* not on a Mac */ }
+try { pressHoldOn = !!(window.neo && window.neo.pressHold && window.neo.pressHold()); } catch (_) { /* no setting */ }
+let accentStripHere = !IS_MAC && !IS_POCKET; // a let, so a test can play Windows
+const macPickerOn = () => pressHoldOn && !accentStripHere;
 let capPending = null; // { block, at } a letter waiting for its capital
 function capPendingResolve(body) {
   const p = capPending;
@@ -700,7 +704,7 @@ function capPendingResolve(body) {
 }
 function autoCapKey(e, body) {
   if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || e.isComposing || e.keyCode === 229) return;
-  if (pressHoldOn) {
+  if (macPickerOn()) {
     if (e.repeat) return;
     if (capPending && !MODIFIER_KEYS.has(e.key)) capPendingResolve(body);
   }
@@ -724,7 +728,7 @@ function autoCapKey(e, body) {
       starts = !CAPS_ABBREV.has(word.toLowerCase()) && !/^\p{L}$/u.test(word);
     }
     if (!starts) return;
-    if (pressHoldOn) { capPending = { block, at: before.length }; return; }
+    if (macPickerOn()) { capPending = { block, at: before.length }; return; }
     e.preventDefault();
     const to = e.key.toLocaleUpperCase(lang);
     document.execCommand('insertText', false, to);
@@ -1226,3 +1230,136 @@ window.addEventListener('keydown', (e) => {
   e.stopPropagation();
   gotoChapter(e.key === 'ArrowDown' || e.key === 'PageDown' ? 1 : -1);
 }, true);
+
+/* ================================================================== */
+/*  ACCENTS — press and hold                                           */
+/*  Hold a letter and its accented forms open in a strip above it, as  */
+/*  on a phone: 1–9 (or ←/→ and Enter, or a click) puts one in its      */
+/*  place, Esc keeps the letter, any other key goes on typing. ⌘Z gives */
+/*  the plain letter back. For Windows and Linux, which have no picker: */
+/*  a Mac uses its own (see pressHoldOn). A held letter that has        */
+/*  accents stops repeating, as on a Mac. Pocket's keyboards have their */
+/*  own. Options → Press and hold for accents, off until turned on.     */
+/* ================================================================== */
+const ACCENTS = {
+  a: 'àáâäæãåāăą', c: 'çćč', d: 'ď', e: 'èéêëēėęě', g: 'ğ', i: 'îïíīįìı', l: 'łľ', n: 'ñńň',
+  o: 'ôöòóœøōõő', r: 'ř', s: 'ßśšșş', t: 'țťţ', u: 'ûüùúūůű', y: 'ÿý', z: 'žźż'
+};
+// the letters a language writes, first, so its numbers stay short
+const ACCENTS_FIRST = {
+  de: 'äöüß', es: 'áéíóúñü', fr: 'éèêàçâîôûëïüœæ', hu: 'áéíóöőúüű', it: 'àèéìòù', nl: 'ëéïèö',
+  pl: 'ąćęłńóśźż', pt: 'ãáâàçéêíóõôú', ro: 'ăâîșț', sv: 'åäö', tr: 'çğıöşü'
+};
+// The forms offered for the letter ch (as it stands: a capital gets capitals).
+function accentsFor(ch, lang) {
+  const all = ACCENTS[ch.toLowerCase()];
+  if (!all) return [];
+  const first = [...(ACCENTS_FIRST[lang.slice(0, 2).toLowerCase()] || '')].filter((c) => all.includes(c));
+  let list = [...new Set([...first, ...all])];
+  if (ch !== ch.toLowerCase()) list = list.map((c) => c.toLocaleUpperCase(lang)).filter((c) => [...c].length === 1 && c !== ch);
+  return [...new Set(list)].slice(0, 9);
+}
+let accentHeld = null;  // the letter key going down: { code, key, el }
+let accentStrip = null; // the strip on screen: { el, editor, node, offset, ch, list, pick }
+window.addEventListener('keydown', (e) => {
+  // the held key's repeats: the first opens the strip, none types
+  if (e.repeat && accentHeld && e.code === accentHeld.code) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    if (!accentStrip) accentStripOpen();
+    return;
+  }
+  if (accentStrip && accentStripKey(e)) return;
+  accentHeld = null;
+  if (e.repeat || e.metaKey || e.ctrlKey || e.altKey || e.isComposing || e.keyCode === 229) return;
+  if (!pressHoldOn || !accentStripHere || vimNav || [...e.key].length !== 1 || !ACCENTS[e.key.toLowerCase()]) return;
+  if (e.target && e.target.isContentEditable) accentHeld = { code: e.code, key: e.key, el: e.target };
+}, true);
+window.addEventListener('keyup', (e) => { if (accentHeld && e.code === accentHeld.code) accentHeld = null; }, true);
+window.addEventListener('blur', () => accentStripClose());
+document.addEventListener('mousedown', (e) => { if (accentStrip && !accentStrip.el.contains(e.target)) accentStripClose(); }, true);
+document.addEventListener('scroll', () => accentStripPlace(), true);
+
+function accentStripOpen() {
+  const { el, key } = accentHeld;
+  const s = window.getSelection();
+  if (!s.rangeCount || !s.isCollapsed || document.activeElement !== el) return;
+  const { startContainer: node, startOffset: offset } = s.getRangeAt(0);
+  // the letter just typed, as it landed (a sentence's first may be a capital)
+  if (node.nodeType !== Node.TEXT_NODE || offset < 1) return;
+  const ch = node.data[offset - 1];
+  if (ch.toLowerCase() !== key.toLowerCase()) return;
+  const list = accentsFor(ch, writingLanguage());
+  if (!list.length) return;
+  const strip = document.createElement('div');
+  strip.className = 'accent-strip';
+  list.forEach((c, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.tabIndex = -1;
+    const n = document.createElement('small');
+    n.textContent = String(i + 1);
+    b.append(c, n);
+    // mousedown, so the page keeps the caret
+    b.addEventListener('mousedown', (ev) => { ev.preventDefault(); accentPick(i); });
+    strip.append(b);
+  });
+  document.body.append(strip);
+  accentStrip = { el: strip, editor: el, node, offset, ch, list, pick: -1 };
+  accentStripPlace();
+}
+// above the letter, centered on it; below when there is no room above
+function accentStripPlace() {
+  const st = accentStrip;
+  if (!st) return;
+  if (!st.node.isConnected) { accentStripClose(); return; }
+  const r = document.createRange();
+  r.setStart(st.node, st.offset - 1);
+  r.setEnd(st.node, st.offset);
+  const box = r.getBoundingClientRect();
+  const w = st.el.offsetWidth;
+  const h = st.el.offsetHeight;
+  st.el.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, box.left + box.width / 2 - w / 2)) + 'px';
+  st.el.style.top = (box.top - h - 6 >= 8 ? box.top - h - 6 : box.bottom + 6) + 'px';
+}
+function accentStripClose() {
+  if (accentStrip) accentStrip.el.remove();
+  accentStrip = null;
+}
+// A key while the strip is up. True when the strip took it.
+function accentStripKey(e) {
+  if (MODIFIER_KEYS.has(e.key)) return false;
+  const st = accentStrip;
+  const take = () => { e.preventDefault(); e.stopImmediatePropagation(); return true; };
+  const num = /^(?:Digit|Numpad)([1-9])$/.exec(e.code || '');
+  if (num && !e.metaKey && !e.ctrlKey && !e.altKey && +num[1] <= st.list.length) {
+    accentPick(+num[1] - 1);
+    return take();
+  }
+  if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+    const n = st.list.length;
+    st.pick = e.key === 'ArrowRight' ? (st.pick + 1) % n : (st.pick <= 0 ? n - 1 : st.pick - 1);
+    [...st.el.children].forEach((b, i) => b.classList.toggle('on', i === st.pick));
+    return take();
+  }
+  if (e.key === 'Enter' && st.pick >= 0) {
+    accentPick(st.pick);
+    return take();
+  }
+  if (e.key === 'Escape') {
+    accentStripClose();
+    return take();
+  }
+  accentStripClose();
+  return false;
+}
+// The letter becomes the form picked: typed over it, so one ⌘Z undoes it.
+function accentPick(i) {
+  const st = accentStrip;
+  accentStripClose();
+  const c = st && st.list[i];
+  if (!c || !st.node.isConnected || st.node.data[st.offset - 1] !== st.ch) return;
+  if (document.activeElement !== st.editor) st.editor.focus({ preventScroll: true });
+  window.getSelection().setBaseAndExtent(st.node, st.offset - 1, st.node, st.offset);
+  document.execCommand('insertText', false, c);
+}

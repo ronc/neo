@@ -1447,6 +1447,23 @@ body.focus-mode .walk-note { opacity: 0.6; }
 .pop-menu button.danger { color: #d97b6c; }
 .pop-menu .pm-sep { height: 1px; background: #3a3a3a; margin: 4px 6px; flex: none; }
 
+/* --- Press and hold: a letter's accents (ACCENTS in app/typing-rules.js) --- */
+.accent-strip {
+  position: fixed; z-index: 960; display: flex; gap: 2px; padding: 4px;
+  background: #262626; border: 1px solid #3a3a3a; border-radius: 8px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.5);
+}
+.accent-strip button {
+  display: flex; flex-direction: column; align-items: center; min-width: 30px;
+  background: none; border: none; border-radius: 5px; padding: 3px 6px 2px; cursor: pointer;
+  color: #ddd; font: 20px/1.15 var(--body-font);
+}
+.accent-strip button small {
+  font: 10px/1.2 -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; color: var(--muted);
+}
+.accent-strip button:hover, .accent-strip button.on { background: #353535; }
+.accent-strip button.on small { color: var(--accent); }
+
 /* --- Right side pane --- */
 #side-hotzone { position: fixed; right: 0; top: 0; bottom: 40px; z-index: 60; }
 #side-pane {

@@ -134,10 +134,10 @@ test('a screen reader hears the forms, the arrows\' choice and the pick', async 
   })()`);
   assert.equal(shape.role, 'listbox');
   assert.equal(shape.label, 'Accents for n');
-  assert.deepEqual(shape.options, ['option ñ 1 false', 'option ń 2 false', 'option ň 3 false']);
+  assert.deepEqual(shape.options, ['option ñ 1 false', 'option ń 2 false', 'option ň 3 false', 'option ņ 4 false']);
   assert.ok(shape.numbersHidden, 'the numbers are not read twice');
   await tick(80);
-  assert.equal(await said(), 'Accents for n: ñ 1 ń 2 ň 3. A number picks one; Esc keeps the letter.');
+  assert.equal(await said(), 'Accents for n: ñ 1 ń 2 ň 3 ņ 4. A number picks one; Esc keeps the letter.');
   assert.equal(await js(`document.activeElement.classList.contains('chapter-body')`), true, 'the caret stays in the page');
   await key('Right');
   await key('Right');
@@ -187,9 +187,9 @@ test('a sentence that NEO capitalized offers capitals', async () => {
 test('a letter with no accents goes on repeating', async () => {
   await caretEnd(6);
   await type(' ');
-  await hold('k');
+  await hold('b');
   assert.equal(await strip(), null);
-  assert.match(await typed(6), /^ kk+$/);
+  assert.match(await typed(6), /^ bb+$/);
 });
 
 test('with the setting off, holding a letter repeats it, as before', async () => {

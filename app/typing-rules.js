@@ -1242,13 +1242,20 @@ window.addEventListener('keydown', (e) => {
 /*  own. Options → Press and hold for accents, off until turned on.     */
 /* ================================================================== */
 const ACCENTS = {
-  a: 'àáâäæãåāăą', c: 'çćč', d: 'ď', e: 'èéêëēėęě', g: 'ğ', i: 'îïíīįìı', l: 'łľ', n: 'ñńň',
-  o: 'ôöòóœøōõő', r: 'ř', s: 'ßśšșş', t: 'țťţ', u: 'ûüùúūůű', y: 'ÿý', z: 'žźż'
+  a: 'àáâäæãåāăą', c: 'çćčĉċ', d: 'ďđð', e: 'èéêëēėęě', g: 'ğģĝġ', h: 'ħĥ', i: 'îïíīįìı', j: 'ĵ',
+  k: 'ķ', l: 'łľĺļŀ', n: 'ñńňņ', o: 'ôöòóœøōõő', r: 'řŕ', s: 'ßśšșşŝ', t: 'țťţþ',
+  u: 'ûüùúūůűųŭ', w: 'ŵẁẃẅ', y: 'ÿýŷỳ', z: 'žźż'
 };
-// the letters a language writes, first, so its numbers stay short
+// the letters a language writes, first, so its numbers stay short. Not
+// Vietnamese: a vowel there has up to 17 forms, more than nine keys hold.
 const ACCENTS_FIRST = {
-  de: 'äöüß', es: 'áéíóúñü', fr: 'éèêàçâîôûëïüœæ', hu: 'áéíóöőúüű', it: 'àèéìòù', nl: 'ëéïèö',
-  pl: 'ąćęłńóśźż', pt: 'ãáâàçéêíóõôú', ro: 'ăâîșț', sv: 'åäö', tr: 'çğıöşü'
+  ca: 'àèéíïòóúüçŀ', cs: 'áčďéěíňóřšťúůýž', cy: 'ŵŷâêîôûẁẃẅỳ', da: 'æøåé', de: 'äöüß',
+  eo: 'ĉĝĥĵŝŭ', es: 'áéíóúñü', et: 'äõöüšž', fi: 'äöåšž', fr: 'éèêàçâîôûëïüœæ', ga: 'áéíóú',
+  gd: 'àèìòù', hr: 'čćđšž', bs: 'čćđšž', sr: 'čćđšž', sh: 'čćđšž', sl: 'čšžćđ',
+  hu: 'áéíóöőúüű', is: 'áðéíóúýþæö', it: 'àèéìòù', lt: 'ąčęėįšųūž', lv: 'āčēģīķļņšūž',
+  mt: 'ċġħżàèìòù', nb: 'æøåéèêóòô', nn: 'æøåéèêóòô', no: 'æøåéèêóòô', nl: 'ëéïèö',
+  pl: 'ąćęłńóśźż', pt: 'ãáâàçéêíóõôú', ro: 'ăâîșț', sk: 'áäčďéíĺľňóôŕšťúýž', sv: 'åäöé',
+  tr: 'çğıöşü'
 };
 // The forms offered for the letter ch (as it stands: a capital gets capitals).
 function accentsFor(ch, lang) {
